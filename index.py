@@ -15,6 +15,7 @@ Dictionary format:
 All docIDs in a list: 				dictionary[0]
 Pointer to "retrieval": 			dictionary[1]["retrieval"][0]
 Length of postings for "retrieval": dictionary[1]["retrieval"][1]
+Length of vector for document 238:  dictionary[2][238]
 """
 
 import re
@@ -24,6 +25,7 @@ import nltk
 import json
 from os import listdir
 from os.path import isfile, join
+from itertools import groupby
 try:
 	import cPickle as pickle
 except:
@@ -57,7 +59,7 @@ def index_doc(doc_name, postings_list):
 	# Tokenize to doc content to sentences, then to words.
 	sentences = nltk.tokenize.sent_tokenize(doc)
 	stemmer = nltk.stem.porter.PorterStemmer()
-	words = set([stemmer.stem(word.lower()) for sentence in sentences for word in nltk.tokenize.word_tokenize(sentence)])
+	words = [stemmer.stem(word.lower()) for sentence in sentences for word in nltk.tokenize.word_tokenize(sentence)]
 	# Append doc to postings list.
 	# No need to sort the list if we call index_doc in sorted docID order.
 	for word in words:
@@ -75,9 +77,17 @@ def index_all_docs(docs):
 	:return: The inverted index constructed from the given documents
 	"""
 	postings_list = {}
-	for doc in docs:
+	for doc in docs[:100]:
 		index_doc(doc, postings_list)
 	return postings_list
+
+def convert_preliminary_postings(preliminary_postings):
+	converted_postings = {}
+	for word in preliminary_postings:
+		docIDs = preliminary_postings[word]
+		groupedDocIDs = [(docID, len(list(group))) for (docID,group) in groupby(docIDs)]
+		converted_postings[word] = groupedDocIDs
+	return converted_postings
 
 def write_postings(postings_list, postings_file_name):
 	"""Given an inverted index, write each term onto disk, while keeping track of the pointer to the start of postings for each term,
@@ -91,7 +101,8 @@ def write_postings(postings_list, postings_file_name):
 	dict_terms = {}
 	for term, docIDs in postings_list.iteritems():
 		posting_pointer = postings_file.tell()
-		postings_file.write(" ".join([str(docID) for docID in docIDs]))
+		# doc_tuple = (docID, frequency)
+		postings_file.write(" ".join([" ".join([str(tuple_content) for tuple_content in list(doc_tuple)]) for doc_tuple in docIDs]))
 		write_length = postings_file.tell() - posting_pointer
 		postings_file.write("\n")
 		dict_terms[term] = (posting_pointer, write_length)
@@ -153,14 +164,15 @@ def main():
 	"""
 	docs_dir, dict_file, postings_file = parse_args()
 
-	print "Searching all documents in {0}...".format(docs_dir),
+	print "Searching for all documents in {0}...".format(docs_dir),
 	sys.stdout.flush()
 	docs = load_all_doc_names(docs_dir)
 	print "DONE"
 
 	print "Constructing the inverted index...",
 	sys.stdout.flush()
-	postings_list = index_all_docs(docs)
+	preliminary_postings_list = index_all_docs(docs)
+	postings_list = convert_preliminary_postings(preliminary_postings_list)
 	print "DONE"
 
 	print "Writing postings to {0}...".format(postings_file),
@@ -170,7 +182,7 @@ def main():
 
 	print "Writing dictionary to {0}...".format(dict_file),
 	sys.stdout.flush()
-	docIDs = all_doc_IDs(docs)
+	docIDs = all_doc_IDs(docs[:100])
 	create_dictionary(docIDs, dict_terms, dict_file)
 	print "DONE"
 
