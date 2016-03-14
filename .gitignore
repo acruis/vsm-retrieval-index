@@ -1,0 +1,6 @@
+corpus/
+.idea/
+*.sh
+
+# Mac
+.DS_Store
