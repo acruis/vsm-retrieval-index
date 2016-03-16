@@ -23,12 +23,6 @@ Postings
 k = 10  # number of results to return
 
 
-# update relevance score of all docs
-def update_relevance():
-
-	exit
-
-
 # heapify an array, O(n) + O(k lg n)
 def first_k_most_relevant():
 	exit
@@ -81,9 +75,12 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 		for query in queries:
 
 			query_terms = normalize(query)
-			doc_score = {}
+			doc_scores = {}
 			for term in query_terms:
-				calculate_score(doc_score, term, dictionary, postings)
+				doc_scores = update_relevance(doc_scores, term, dictionary, postings)
+
+			results = first_k_most_relevant(doc_scores)
+			output.write(" ".join(results))
 
 	postings.close()
 	output.close()
@@ -92,29 +89,39 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 
 
 def normalize(query):
+	""" Tokenize and stem
+
+	:param query:
+	:return:
+	"""
 	query_tokens = nltk.word_tokenize(query)
 	stemmer = nltk.stem.PorterStemmer()
 	query_terms = map(lambda word : stemmer.stem(word), query_tokens)
 	return query_terms
 
 
-
-def calculate_score(doc_score, term, dictionary, postings_file):
+def update_relevance(doc_scores, term, dictionary, postings_file):
 	postings = read_postings_of_term(term, dictionary, postings_file)
 	for docID_and_tf_weight in postings:
 		docID = docID_and_tf_weight[0]
 		tf_weight = docID_and_tf_weight[1]
 
-		if docID in doc_score:
-			doc_score[docID]
+		if docID not in doc_scores:
+			doc_scores[docID] = 0
 
-	exit
+		doc_scores[docID] += calculate_score()
+
+	return doc_scores
+
+
+def calculate_score():
+	return 0
 
 
 def read_postings_of_term(term, dictionary, postings_file):
 		""" Gets own postings list from file and stores it in its attribute. For search token nodes only.
 
-		:param term: 
+		:param term:
 		:param postings_file: File object referencing the file containing the complete set of postings lists.
 		:param dictionary: Dictionary that takes search token keys, and returns a tuple of pointer and length.
 			The pointer points to the starting point of the search token's postings list in the file.
@@ -129,11 +136,6 @@ def read_postings_of_term(term, dictionary, postings_file):
 			postings = map(lambda docID_and_tf_weight : docID_and_tf_weight.split(","), postings)
 			postings = map(lambda docID_and_tf_weight : [int(docID_and_tf_weight[0]), float(docID_and_tf_weight[1])],postings)
 			return postings
-
-
-
-#def doc_score(docID):
-
 
 
 def main():
