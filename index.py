@@ -31,6 +31,7 @@ try:
 except:
 	import pickle
 
+
 def load_all_doc_names(docs_dir):
 	"""Takes in the document directory path, and lists names of all non-directory
 	files from the given path. Returns a list of tuples (file_name, file_path) where
@@ -46,6 +47,7 @@ def load_all_doc_names(docs_dir):
 	joined_members = [(dir_member, join(docs_dir, str(dir_member))) for dir_member in sorted_members]
 	joined_files = [(member_name, member_path) for member_name, member_path in joined_members if isfile(member_path)]
 	return joined_files
+
 
 def index_doc(doc_name, postings_list):
 	"""Indexes a single document in the corpus. Makes use of stemming and tokenization.
@@ -69,6 +71,7 @@ def index_doc(doc_name, postings_list):
 			postings_list[word] = [docID]
 	doc_file.close()
 
+
 def index_all_docs(docs):
 	"""Calls index_doc on all documents in their order in the list passed as argument. Maintaining this order is important as this
 	results in sorted postings without having to manually sort the postings for each term at the end of the indexing step.
@@ -81,6 +84,7 @@ def index_all_docs(docs):
 		index_doc(doc, postings_list)
 	return postings_list
 
+
 def convert_preliminary_postings(preliminary_postings):
 	converted_postings = {}
 	for word in preliminary_postings:
@@ -88,6 +92,7 @@ def convert_preliminary_postings(preliminary_postings):
 		groupedDocIDs = [(docID, len(list(group))) for (docID,group) in groupby(docIDs)]
 		converted_postings[word] = groupedDocIDs
 	return converted_postings
+
 
 def write_postings(postings_list, postings_file_name):
 	"""Given an inverted index, write each term onto disk, while keeping track of the pointer to the start of postings for each term,
@@ -109,6 +114,7 @@ def write_postings(postings_list, postings_file_name):
 	postings_file.close()
 	return dict_terms
 
+
 def all_doc_IDs(docs):
 	"""Extracts docIDs from a list of tuples of docID and path to the document file.
 
@@ -117,6 +123,7 @@ def all_doc_IDs(docs):
 	"""
 	# O(doc_count).
 	return [docID for docID, doc_path in docs]
+
 
 def create_dictionary(docIDs, dict_terms, dict_file_name):
 	"""Combines the list of all document IDs (necessary for computing NOT), and the dictionary itself, to create the dictionary file,
@@ -130,9 +137,11 @@ def create_dictionary(docIDs, dict_terms, dict_file_name):
 	json.dump([docIDs, dict_terms], dict_file)
 	dict_file.close()
 
+
 def usage():
 	"""Prints the proper format for calling this script."""
 	print "usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file"
+
 
 def parse_args():
 	"""Attempts to parse command line arguments fed into the script when it was called.
@@ -140,23 +149,24 @@ def parse_args():
 	"""
 	docs_dir = dict_file = postings_file = None
 	try:
-	    opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:')
+		opts, args = getopt.getopt(sys.argv[1:], 'i:d:p:')
 	except getopt.GetoptError, err:
-	    usage()
-	    sys.exit(2)
+		usage()
+		sys.exit(2)
 	for o, a in opts:
-	    if o == '-i':
-	        docs_dir = a
-	    elif o == '-d':
-	        dict_file = a
-	    elif o == '-p':
-	        postings_file = a
-	    else:
-	        assert False, "unhandled option"
-	if docs_dir == None or dict_file == None or postings_file == None:
-	    usage()
-	    sys.exit(2)
-	return (docs_dir, dict_file, postings_file)
+		if o == '-i':
+			docs_dir = a
+		elif o == '-d':
+			dict_file = a
+		elif o == '-p':
+			postings_file = a
+		else:
+			assert False, "unhandled option"
+	if docs_dir is None or dict_file is None or postings_file is None:
+		usage()
+		sys.exit(2)
+	return docs_dir, dict_file, postings_file
+
 
 def main():
 	"""Constructs the inverted index from all documents in the specified file path, then writes dictionary to the specified dictionary
