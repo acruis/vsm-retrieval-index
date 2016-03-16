@@ -1,10 +1,13 @@
 """
 Dictionary format:
 [
-	[1, 2, 3, 4, 5, 11],
 	{
-		"hi": [0, 2],
-		"bye": [3, 1]
+		"67": 5.46,
+		"238": 1.23
+	}
+	{
+		"hi": [0, 2, 4.567495861],
+		"bye": [3, 1, 0.123584232]
 	}
 ]
 
@@ -12,10 +15,10 @@ Dictionary format:
 {} = dict
 (no tuples)
 
-All docIDs in a list: 				dictionary[0]
-Pointer to "retrieval": 			dictionary[1]["retrieval"][0]
-Length of postings for "retrieval": dictionary[1]["retrieval"][1]
-Length of vector for document 238:  dictionary[2][238]
+VSM lnc vector length of document 238:	dictionary[0]["238"]
+Pointer to "retrieval": 				dictionary[1]["retrieval"][0]
+Length of postings for "retrieval":		dictionary[1]["retrieval"][1]
+idf of "retrieval":   					dictionary[1]["retrieval"][2]
 """
 
 import re
@@ -23,6 +26,8 @@ import getopt
 import sys
 import nltk
 import json
+from collections import defaultdict
+from math import log, sqrt
 from os import listdir
 from os.path import isfile, join
 from itertools import groupby
@@ -48,6 +53,21 @@ def load_all_doc_names(docs_dir):
 	joined_files = [(member_name, member_path) for member_name, member_path in joined_members if isfile(member_path)]
 	return joined_files
 
+<<<<<<< HEAD
+=======
+def get_doc_tokens(doc_name):
+	"""Extracts all tokens in the given document as elements in a list.
+
+	:param doc_name: A tuple containing the docID, and doc_path which is the filepath to the document.
+	"""
+	docID, doc_path = doc_name
+	with open(doc_path) as doc_file:
+		doc = doc_file.read()
+	# Tokenize to doc content to sentences, then to words.
+	sentences = nltk.tokenize.sent_tokenize(doc)
+	stemmer = nltk.stem.porter.PorterStemmer()
+	return [stemmer.stem(word.lower()) for sentence in sentences for word in nltk.tokenize.word_tokenize(sentence)]	
+>>>>>>> 7de8f1822cbc884cc01c9059ec300fc4eabc99c3
 
 def index_doc(doc_name, postings_list):
 	"""Indexes a single document in the corpus. Makes use of stemming and tokenization.
@@ -56,12 +76,7 @@ def index_doc(doc_name, postings_list):
 	:param postings_list: The postings list, to be updated (mutated) as part of the indexing process.
 	"""
 	docID, doc_path = doc_name
-	doc_file = file(doc_path)
-	doc = doc_file.read()
-	# Tokenize to doc content to sentences, then to words.
-	sentences = nltk.tokenize.sent_tokenize(doc)
-	stemmer = nltk.stem.porter.PorterStemmer()
-	words = [stemmer.stem(word.lower()) for sentence in sentences for word in nltk.tokenize.word_tokenize(sentence)]
+	words = get_doc_tokens(doc_name)
 	# Append doc to postings list.
 	# No need to sort the list if we call index_doc in sorted docID order.
 	for word in words:
@@ -69,7 +84,6 @@ def index_doc(doc_name, postings_list):
 			postings_list[word].append(docID)
 		else:
 			postings_list[word] = [docID]
-	doc_file.close()
 
 
 def index_all_docs(docs):
@@ -80,21 +94,57 @@ def index_all_docs(docs):
 	:return: The inverted index constructed from the given documents
 	"""
 	postings_list = {}
-	for doc in docs[:100]:
+	document_lengths = {}
+	for doc in docs:
 		index_doc(doc, postings_list)
 	return postings_list
 
+<<<<<<< HEAD
+=======
+def lnc_from_tf(tf):
+	"""Takes tf, and uses lnc to convert it to the term weight. The formula is 1 + log(tf_t,d) where the log base is 10.
+
+	:param tf: The frequency of a term in a document. Should not be 0.
+	"""
+	return 1 + log(tf, 10)
+>>>>>>> 7de8f1822cbc884cc01c9059ec300fc4eabc99c3
 
 def convert_preliminary_postings(preliminary_postings):
 	converted_postings = {}
 	for word in preliminary_postings:
 		docIDs = preliminary_postings[word]
-		groupedDocIDs = [(docID, len(list(group))) for (docID,group) in groupby(docIDs)]
+		groupedDocIDs = [(docID, lnc_from_tf(len(list(group)))) for (docID,group) in groupby(docIDs)]
 		converted_postings[word] = groupedDocIDs
 	return converted_postings
 
+<<<<<<< HEAD
 
 def write_postings(postings_list, postings_file_name):
+=======
+def calculate_doc_lengths(postings_list):
+	"""Calculates the VSM lnc vector length for each document, given the postings list.
+
+	:param postings_list: The postings list, which contains (docID, lnc_weight) tuples as term postings.
+	"""
+	doc_sum_squares = defaultdict(float)
+	for term in postings_list:
+		for docID, weight in postings_list[term]:
+			doc_sum_squares[docID] += pow(weight, 2)
+	doc_lengths = {}
+	for docID in doc_sum_squares:
+		doc_lengths[int(docID)] = sqrt(doc_sum_squares[docID])
+	return doc_lengths
+
+def idf_docs(df, big_N):
+	"""Calculates the idf of a term. The formula is log(N/df_t) where the log base is 10.
+
+	:param df: The document frequency of the term
+	:param big_N: The total number of documents
+	"""
+	return log(float(big_N)/df, 10)
+
+def write_postings(postings_list, postings_file_name, big_N):
+>>>>>>> 7de8f1822cbc884cc01c9059ec300fc4eabc99c3
 	"""Given an inverted index, write each term onto disk, while keeping track of the pointer to the start of postings for each term,
 	together with the run length of said postings on the file, which will be used to construct the dictionary.
 
@@ -104,13 +154,13 @@ def write_postings(postings_list, postings_file_name):
 	"""
 	postings_file = file(postings_file_name, 'w')
 	dict_terms = {}
-	for term, docIDs in postings_list.iteritems():
+	for term, postings in postings_list.iteritems():
 		posting_pointer = postings_file.tell()
-		# doc_tuple = (docID, frequency)
-		postings_file.write(" ".join([" ".join([str(tuple_content) for tuple_content in list(doc_tuple)]) for doc_tuple in docIDs]))
+		# doc_tuple has the format (docID, lnc_weight)
+		postings_file.write(" ".join([",".join([str(docID), "%.9f" % weight]) for docID, weight in postings]))
 		write_length = postings_file.tell() - posting_pointer
 		postings_file.write("\n")
-		dict_terms[term] = (posting_pointer, write_length)
+		dict_terms[term] = (posting_pointer, write_length, idf_docs(len(postings), big_N))
 	postings_file.close()
 	return dict_terms
 
@@ -124,17 +174,21 @@ def all_doc_IDs(docs):
 	# O(doc_count).
 	return [docID for docID, doc_path in docs]
 
+<<<<<<< HEAD
 
 def create_dictionary(docIDs, dict_terms, dict_file_name):
+=======
+def create_dictionary(document_lengths, dict_terms, dict_file_name):
+>>>>>>> 7de8f1822cbc884cc01c9059ec300fc4eabc99c3
 	"""Combines the list of all document IDs (necessary for computing NOT), and the dictionary itself, to create the dictionary file,
 	and then writes the resulting list to the specified file path as a JSON data structure.
 
-	:param docIDs: The list of all document IDs, sorted
+	:param document_lengths: A mapping from docID to its VSM vector length.
 	:param dict_terms: The dictionary, with term as key and tuple of (postings pointer, postings run length in the file) as value
 	:dict_file_name: The file path of the resultant dictionary file
 	"""
 	dict_file = file(dict_file_name, 'w')
-	json.dump([docIDs, dict_terms], dict_file)
+	json.dump([document_lengths, dict_terms], dict_file)
 	dict_file.close()
 
 
@@ -177,23 +231,24 @@ def main():
 	print "Searching for all documents in {0}...".format(docs_dir),
 	sys.stdout.flush()
 	docs = load_all_doc_names(docs_dir)
+	big_N = len(docs)
 	print "DONE"
 
 	print "Constructing the inverted index...",
 	sys.stdout.flush()
 	preliminary_postings_list = index_all_docs(docs)
 	postings_list = convert_preliminary_postings(preliminary_postings_list)
+	doc_lengths = calculate_doc_lengths(postings_list)
 	print "DONE"
 
 	print "Writing postings to {0}...".format(postings_file),
 	sys.stdout.flush()
-	dict_terms = write_postings(postings_list, postings_file)
+	dict_terms = write_postings(postings_list, postings_file, big_N)
 	print "DONE"
 
 	print "Writing dictionary to {0}...".format(dict_file),
 	sys.stdout.flush()
-	docIDs = all_doc_IDs(docs[:100])
-	create_dictionary(docIDs, dict_terms, dict_file)
+	create_dictionary(doc_lengths, dict_terms, dict_file)
 	print "DONE"
 
 if __name__ == "__main__":
