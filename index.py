@@ -53,8 +53,6 @@ def load_all_doc_names(docs_dir):
 	joined_files = [(member_name, member_path) for member_name, member_path in joined_members if isfile(member_path)]
 	return joined_files
 
-<<<<<<< HEAD
-=======
 def get_doc_tokens(doc_name):
 	"""Extracts all tokens in the given document as elements in a list.
 
@@ -67,7 +65,6 @@ def get_doc_tokens(doc_name):
 	sentences = nltk.tokenize.sent_tokenize(doc)
 	stemmer = nltk.stem.porter.PorterStemmer()
 	return [stemmer.stem(word.lower()) for sentence in sentences for word in nltk.tokenize.word_tokenize(sentence)]	
->>>>>>> 7de8f1822cbc884cc01c9059ec300fc4eabc99c3
 
 def index_doc(doc_name, postings_list):
 	"""Indexes a single document in the corpus. Makes use of stemming and tokenization.
@@ -85,7 +82,6 @@ def index_doc(doc_name, postings_list):
 		else:
 			postings_list[word] = [docID]
 
-
 def index_all_docs(docs):
 	"""Calls index_doc on all documents in their order in the list passed as argument. Maintaining this order is important as this
 	results in sorted postings without having to manually sort the postings for each term at the end of the indexing step.
@@ -99,15 +95,12 @@ def index_all_docs(docs):
 		index_doc(doc, postings_list)
 	return postings_list
 
-<<<<<<< HEAD
-=======
 def lnc_from_tf(tf):
 	"""Takes tf, and uses lnc to convert it to the term weight. The formula is 1 + log(tf_t,d) where the log base is 10.
 
 	:param tf: The frequency of a term in a document. Should not be 0.
 	"""
 	return 1 + log(tf, 10)
->>>>>>> 7de8f1822cbc884cc01c9059ec300fc4eabc99c3
 
 def convert_preliminary_postings(preliminary_postings):
 	converted_postings = {}
@@ -117,10 +110,6 @@ def convert_preliminary_postings(preliminary_postings):
 		converted_postings[word] = groupedDocIDs
 	return converted_postings
 
-<<<<<<< HEAD
-
-def write_postings(postings_list, postings_file_name):
-=======
 def calculate_doc_lengths(postings_list):
 	"""Calculates the VSM lnc vector length for each document, given the postings list.
 
@@ -144,7 +133,6 @@ def idf_docs(df, big_N):
 	return log(float(big_N)/df, 10)
 
 def write_postings(postings_list, postings_file_name, big_N):
->>>>>>> 7de8f1822cbc884cc01c9059ec300fc4eabc99c3
 	"""Given an inverted index, write each term onto disk, while keeping track of the pointer to the start of postings for each term,
 	together with the run length of said postings on the file, which will be used to construct the dictionary.
 
@@ -164,7 +152,6 @@ def write_postings(postings_list, postings_file_name, big_N):
 	postings_file.close()
 	return dict_terms
 
-
 def all_doc_IDs(docs):
 	"""Extracts docIDs from a list of tuples of docID and path to the document file.
 
@@ -174,12 +161,7 @@ def all_doc_IDs(docs):
 	# O(doc_count).
 	return [docID for docID, doc_path in docs]
 
-<<<<<<< HEAD
-
-def create_dictionary(docIDs, dict_terms, dict_file_name):
-=======
 def create_dictionary(document_lengths, dict_terms, dict_file_name):
->>>>>>> 7de8f1822cbc884cc01c9059ec300fc4eabc99c3
 	"""Combines the list of all document IDs (necessary for computing NOT), and the dictionary itself, to create the dictionary file,
 	and then writes the resulting list to the specified file path as a JSON data structure.
 
@@ -195,7 +177,6 @@ def create_dictionary(document_lengths, dict_terms, dict_file_name):
 def usage():
 	"""Prints the proper format for calling this script."""
 	print "usage: " + sys.argv[0] + " -i directory-of-documents -d dictionary-file -p postings-file"
-
 
 def parse_args():
 	"""Attempts to parse command line arguments fed into the script when it was called.
@@ -220,7 +201,6 @@ def parse_args():
 		usage()
 		sys.exit(2)
 	return docs_dir, dict_file, postings_file
-
 
 def main():
 	"""Constructs the inverted index from all documents in the specified file path, then writes dictionary to the specified dictionary
