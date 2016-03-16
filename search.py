@@ -6,6 +6,7 @@ import json
 import heapq
 import time
 import math
+from itertools import groupby, chain, islice
 
 show_time = True
 
@@ -28,11 +29,33 @@ def update_relevance():
 
 	exit
 
+def sort_relevant_docs(most_relevant_docs):
+	grouped_relevant = groupby(most_relevant_docs, key=lambda score_doc_entry: score_doc_entry[0])
+	sorted_relevant = [sorted(equal_score_entries, key=lambda equal_scored_entry: equal_score_entry[1]) for equal_score_entries in grouped_relevant]
+	flattened_relevant = chain.from_iterable(sorted_relevant)
+	trimmed_relevant = islice(flattened_relevant, k) # Takes first k elements from the iterable. If there are less than k elements, it stops when the iterable stops
+	return list(trimmed_relevant)
 
 # heapify an array, O(n) + O(k lg n)
-def first_k_most_relevant():
-	exit
-
+def first_k_most_relevant(doc_scores):
+	scores = [(-score, docID) for docID, score in doc_scores.iteritems()] # invert the scores so that we get the largest score always
+	heapq.heapify(scores)
+	most_relevant_docs = []
+	for _ in range(k):
+		if not scores:
+			break
+		most_relevant_docs.append(scores.heappop())
+	if not most_relevant_docs:
+		return most_relevant_docs
+	# deals with equal-score cases
+	kth_score, kth_docID = most_relevant_docs[-1]
+	while scores:
+		next_score, next_docID = scores.heappop()
+		if next_score == kth_score:
+			most_relevant_docs.append((next_score, next_docID))
+		else:
+			break
+	return sort_relevant_docs(most_relevant_docs)
 
 def usage():
 	"""Prints the proper format for calling this script."""
