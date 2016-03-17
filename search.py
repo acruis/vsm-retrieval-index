@@ -104,7 +104,7 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 			for term in query_terms:
 				doc_scores = update_relevance(doc_scores, doc_length, dictionary, postings, query_terms, term)
 
-			for key in doc_length:
+			for key in doc_scores:
 				doc_scores[key] /= doc_length[key]
 
 			results = first_k_most_relevant(doc_scores)
