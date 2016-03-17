@@ -27,7 +27,7 @@ import sys
 import nltk
 import json
 from collections import defaultdict
-from math import log, sqrt
+from math import log10, sqrt
 from os import listdir
 from os.path import isfile, join
 from itertools import groupby
@@ -100,7 +100,7 @@ def lnc_from_tf(tf):
 
 	:param tf: The frequency of a term in a document. Should not be 0.
 	"""
-	return 1 + log(tf, 10)
+	return 1 + log10(tf)
 
 def convert_preliminary_postings(preliminary_postings):
 	converted_postings = {}
@@ -130,7 +130,7 @@ def idf_docs(df, big_N):
 	:param df: The document frequency of the term
 	:param big_N: The total number of documents
 	"""
-	return log(float(big_N)/df, 10)
+	return log10(float(big_N)/df)
 
 def write_postings(postings_list, postings_file_name, big_N):
 	"""Given an inverted index, write each term onto disk, while keeping track of the pointer to the start of postings for each term,
