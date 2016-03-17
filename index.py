@@ -103,6 +103,10 @@ def lnc_from_tf(tf):
 	return 1 + log10(tf)
 
 def convert_preliminary_postings(preliminary_postings):
+	"""Converts postings in the form of [docID1, docID2, docID2, docID3, docID4,...] to [(docID1, 1), (docID2, 2), (docID3, 1), (docID3, 1),...]
+
+	:param preliminary_postings: Ungrouped document ID postings
+	"""
 	converted_postings = {}
 	for word in preliminary_postings:
 		docIDs = preliminary_postings[word]
