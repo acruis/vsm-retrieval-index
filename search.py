@@ -6,16 +6,55 @@ import json
 import heapq
 import time
 import math
+from itertools import groupby, chain, islice
 
 show_time = True
 
 k = 10  # number of results to return
 
 
-# heapify an array, O(n) + O(k lg n)
-def first_k_most_relevant():
+# update relevance score of all docs
+def update_relevance():
+
 	exit
 
+def sort_relevant_docs(most_relevant_docs):
+	"""Given a list of tuples of documents in the format of (score, docID), sort them primarily by decreasing score, and tiebreak by increasing docID,
+	and then return up to the first k elements in the list.
+
+	:param most_relevant_docs: A list of tuples of documents and their scores, where each tuple contains (score, docID). 
+	"""
+	grouped_relevant = groupby(most_relevant_docs, key=lambda score_doc_entry: score_doc_entry[0])
+	sorted_relevant = [sorted(equal_score_entries, key=lambda equal_scored_entry: equal_score_entry[1]) for equal_score_entries in grouped_relevant]
+	flattened_relevant = chain.from_iterable(sorted_relevant)
+	trimmed_relevant = islice(flattened_relevant, k) # Takes first k elements from the iterable. If there are less than k elements, it stops when the iterable stops
+	return list(trimmed_relevant)
+
+# heapify an array, O(n) + O(k lg n)
+def first_k_most_relevant(doc_scores):
+	"""If there are more than k documents containing terms in a query, return the k documents with the highest scores, tiebroken by least docID first.
+	If there are less than k documents, return them, sorted by highest scores, and tiebroken by least docID first.
+
+	:param doc_scores: A dictionary of docID to its corresponding document's score.
+	"""
+	scores = [(-score, docID) for docID, score in doc_scores.iteritems()] # invert the scores so that we get the largest score always
+	heapq.heapify(scores)
+	most_relevant_docs = []
+	for _ in range(k):
+		if not scores:
+			break
+		most_relevant_docs.append(scores.heappop())
+	if not most_relevant_docs:
+		return most_relevant_docs
+	# deals with equal-score cases
+	kth_score, kth_docID = most_relevant_docs[-1]
+	while scores:
+		next_score, next_docID = scores.heappop()
+		if next_score == kth_score:
+			most_relevant_docs.append((next_score, next_docID))
+		else:
+			break
+	return sort_relevant_docs(most_relevant_docs)
 
 def usage():
 	"""Prints the proper format for calling this script."""
