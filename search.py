@@ -12,12 +12,6 @@ show_time = True
 
 k = 10  # number of results to return
 
-
-# update relevance score of all docs
-def update_relevance():
-
-	exit
-
 def sort_relevant_docs(most_relevant_docs):
 	"""Given a list of tuples of documents in the format of (score, docID), sort them primarily by decreasing score, and tiebreak by increasing docID,
 	and then return up to the first k elements in the list.
