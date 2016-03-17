@@ -110,6 +110,7 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 
 			results = first_k_most_relevant(doc_scores)
 			output.write(" ".join(results))
+			output.write("\n")
 
 	postings.close()
 	output.close()
@@ -137,21 +138,21 @@ def normalize(query):
 	"""
 	query_tokens = nltk.word_tokenize(query)
 	stemmer = nltk.stem.PorterStemmer()
-	query_terms = map(lambda word : stemmer.stem(word), query_tokens)
+	query_terms = map(lambda word : stemmer.stem(word.lower()), query_tokens)
 	return query_terms
 
 
 def update_relevance(doc_scores, dictionary, postings_file, query_terms, term):
 
 	postings = read_postings(term, dictionary, postings_file)
-
+	
 	for docID_and_tf in postings:
 
 		docID, tf_in_doc = docID_and_tf
 		tf_in_query = query_terms.count(term)
 		term_idf = dictionary[term][2]
 
-		weight_of_term_in_doc = tf_in_doc * term_idf
+		weight_of_term_in_doc = tf_in_doc
 		weight_of_term_in_query = (1 + math.log10(tf_in_query)) * term_idf
 
 		if docID not in doc_scores:
@@ -180,6 +181,8 @@ def read_postings(term, dictionary, postings_file):
 			postings = map(lambda docID_and_tf : docID_and_tf.split(","), postings)
 			postings = map(lambda docID_and_tf : [int(docID_and_tf[0]), float(docID_and_tf[1])],postings)
 			return postings
+		else:
+			return []
 
 
 def main():
