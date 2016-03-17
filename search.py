@@ -93,7 +93,9 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 	# load dictionary
 	begin = time.time() * 1000.0
 	with open(dictionary_file) as dict_file:
-		dictionary = json.load(dict_file)
+		temp = json.load(dict_file)
+		doc_length = temp[0]
+		dictionary = temp[1]
 
 	# open queries
 	postings = file(postings_file)
@@ -106,7 +108,10 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 			doc_scores = {}
 
 			for term in query_terms:
-				doc_scores = update_relevance(doc_scores, dictionary, postings, query_terms, term)
+				doc_scores = update_relevance(doc_scores, doc_length, dictionary, postings, query_terms, term)
+
+			for key in doc_length:
+				doc_scores[key] /= doc_length[key]
 
 			results = first_k_most_relevant(doc_scores)
 			output.write(" ".join(results))
@@ -116,8 +121,6 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 	after = time.time() * 1000.0
 	if show_time: print after-begin
 
-
-idf = 2
 
 """
 Dictionary
@@ -143,7 +146,7 @@ def normalize(query):
 	return query_terms
 
 
-def update_relevance(doc_scores, dictionary, postings_file, query_terms, term):
+def update_relevance(doc_scores, doc_length, dictionary, postings_file, query_terms, term):
 
 	postings = read_postings(term, dictionary, postings_file)
 
@@ -151,13 +154,14 @@ def update_relevance(doc_scores, dictionary, postings_file, query_terms, term):
 
 		docID, tf_in_doc = docID_and_tf
 		tf_in_query = query_terms.count(term)
-		term_idf = dictionary[term][idf]
+		term_idf = dictionary[term][2]
 
 		weight_of_term_in_doc = (1 + math.log10(tf_in_doc)) * term_idf
 		weight_of_term_in_query = (1 + math.log10(tf_in_query)) * term_idf
 
 		if docID not in doc_scores:
 			doc_scores[docID] = 0
+			doc_length[docID] = 0
 
 		doc_scores[docID] += weight_of_term_in_doc * weight_of_term_in_query
 
