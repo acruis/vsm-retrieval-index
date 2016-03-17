@@ -9,17 +9,6 @@ import math
 
 show_time = True
 
-"""
-Dictionary
-	- Position index
-	- Length of postings list in characters
-	- Pre-calculated idf
-
-Postings
-	- Doc ID
-	- Pre-calculated log frequency weight
-"""
-
 k = 10  # number of results to return
 
 
@@ -76,8 +65,9 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 
 			query_terms = normalize(query)
 			doc_scores = {}
+
 			for term in query_terms:
-				doc_scores = update_relevance(doc_scores, term, dictionary, postings)
+				doc_scores = update_relevance(doc_scores, dictionary, postings, query_terms, term)
 
 			results = first_k_most_relevant(doc_scores)
 			output.write(" ".join(results))
@@ -86,6 +76,20 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 	output.close()
 	after = time.time() * 1000.0
 	if show_time: print after-begin
+
+
+idf = 2
+
+"""
+Dictionary
+	- Position index
+	- Length of postings list in characters
+	- Pre-calculated idf
+
+Postings
+	- Doc ID
+	- Pre-calculated log frequency weight
+"""
 
 
 def normalize(query):
@@ -100,25 +104,28 @@ def normalize(query):
 	return query_terms
 
 
-def update_relevance(doc_scores, term, dictionary, postings_file):
-	postings = read_postings_of_term(term, dictionary, postings_file)
-	for docID_and_tf_weight in postings:
-		docID = docID_and_tf_weight[0]
-		tf_weight = docID_and_tf_weight[1]
+def update_relevance(doc_scores, dictionary, postings_file, query_terms, term):
+
+	postings = read_postings(term, dictionary, postings_file)
+
+	for docID_and_tf in postings:
+
+		docID, tf_in_doc = docID_and_tf
+		tf_in_query = query_terms.count(term)
+		term_idf = dictionary[term][idf]
+
+		weight_of_term_in_doc = (1 + math.log10(tf_in_doc)) * term_idf
+		weight_of_term_in_query = (1 + math.log10(tf_in_query)) * term_idf
 
 		if docID not in doc_scores:
 			doc_scores[docID] = 0
 
-		doc_scores[docID] += calculate_score()
+		doc_scores[docID] += weight_of_term_in_doc * weight_of_term_in_query
 
 	return doc_scores
 
 
-def calculate_score():
-	return 0
-
-
-def read_postings_of_term(term, dictionary, postings_file):
+def read_postings(term, dictionary, postings_file):
 		""" Gets own postings list from file and stores it in its attribute. For search token nodes only.
 
 		:param term:
@@ -133,8 +140,8 @@ def read_postings_of_term(term, dictionary, postings_file):
 			postings_length = dictionary[term][1]
 			postings_file.seek(term_pointer)
 			postings = postings_file.read(postings_length).split()
-			postings = map(lambda docID_and_tf_weight : docID_and_tf_weight.split(","), postings)
-			postings = map(lambda docID_and_tf_weight : [int(docID_and_tf_weight[0]), float(docID_and_tf_weight[1])],postings)
+			postings = map(lambda docID_and_tf : docID_and_tf.split(","), postings)
+			postings = map(lambda docID_and_tf : [int(docID_and_tf[0]), float(docID_and_tf[1])],postings)
 			return postings
 
 
