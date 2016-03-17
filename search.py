@@ -30,6 +30,11 @@ def update_relevance():
 	exit
 
 def sort_relevant_docs(most_relevant_docs):
+	"""Given a list of tuples of documents in the format of (score, docID), sort them primarily by decreasing score, and tiebreak by increasing docID,
+	and then return up to the first k elements in the list.
+
+	:param most_relevant_docs: A list of tuples of documents and their scores, where each tuple contains (score, docID). 
+	"""
 	grouped_relevant = groupby(most_relevant_docs, key=lambda score_doc_entry: score_doc_entry[0])
 	sorted_relevant = [sorted(equal_score_entries, key=lambda equal_scored_entry: equal_score_entry[1]) for equal_score_entries in grouped_relevant]
 	flattened_relevant = chain.from_iterable(sorted_relevant)
@@ -38,6 +43,11 @@ def sort_relevant_docs(most_relevant_docs):
 
 # heapify an array, O(n) + O(k lg n)
 def first_k_most_relevant(doc_scores):
+	"""If there are more than k documents containing terms in a query, return the k documents with the highest scores, tiebroken by least docID first.
+	If there are less than k documents, return them, sorted by highest scores, and tiebroken by least docID first.
+
+	:param doc_scores: A dictionary of docID to its corresponding document's score.
+	"""
 	scores = [(-score, docID) for docID, score in doc_scores.iteritems()] # invert the scores so that we get the largest score always
 	heapq.heapify(scores)
 	most_relevant_docs = []
