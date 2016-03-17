@@ -12,12 +12,6 @@ show_time = True
 
 k = 10  # number of results to return
 
-
-# update relevance score of all docs
-def update_relevance():
-
-	exit
-
 def sort_relevant_docs(most_relevant_docs):
 	"""Given a list of tuples of documents in the format of (score, docID), sort them primarily by decreasing score, and tiebreak by increasing docID,
 	and then return up to the first k elements in the list.
@@ -43,13 +37,13 @@ def first_k_most_relevant(doc_scores):
 	for _ in range(k):
 		if not scores:
 			break
-		most_relevant_docs.append(scores.heappop())
+		most_relevant_docs.append(heapq.heappop(scores))
 	if not most_relevant_docs:
 		return most_relevant_docs
 	# deals with equal-score cases
 	kth_score, kth_docID = most_relevant_docs[-1]
 	while scores:
-		next_score, next_docID = scores.heappop()
+		next_score, next_docID = heapq.heappop(scores)
 		if next_score == kth_score:
 			most_relevant_docs.append((next_score, next_docID))
 		else:
