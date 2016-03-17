@@ -32,7 +32,7 @@ def first_k_most_relevant(doc_scores):
 
 	:param doc_scores: A dictionary of docID to its corresponding document's score.
 	"""
-	scores = [(-score, docID) for docID, score in doc_scores.iteritems()] # invert the scores so that we get the largest score always
+	scores = [(-score, docID) for docID, score in doc_scores.iteritems()] # invert the scores so that heappop gives us the smallest score
 	heapq.heapify(scores)
 	most_relevant_docs = []
 	for _ in range(k):
