@@ -19,10 +19,11 @@ def sort_relevant_docs(most_relevant_docs):
 	:param most_relevant_docs: A list of tuples of documents and their scores, where each tuple contains (score, docID). 
 	"""
 	grouped_relevant = groupby(most_relevant_docs, key=lambda score_doc_entry: score_doc_entry[0])
-	sorted_relevant = [sorted(equal_score_entries, key=lambda equal_scored_entry: equal_score_entry[1]) for equal_score_entries in grouped_relevant]
+	sorted_relevant = [sorted(equal_score_entries[1], key=lambda equal_score_entry: equal_score_entry[1]) for equal_score_entries in grouped_relevant]
 	flattened_relevant = chain.from_iterable(sorted_relevant)
 	trimmed_relevant = islice(flattened_relevant, k) # Takes first k elements from the iterable. If there are less than k elements, it stops when the iterable stops
-	return list(trimmed_relevant)
+	relevant_docIDs = [str(docID) for score, docID in trimmed_relevant] # Finally, extract the docID from the tuple and convert it to a string to be written to output
+	return list(relevant_docIDs)
 
 # heapify an array, O(n) + O(k lg n)
 def first_k_most_relevant(doc_scores):
@@ -105,7 +106,7 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 				doc_scores = update_relevance(doc_scores, doc_length, dictionary, postings, query_terms, term)
 
 			for key in doc_scores:
-				doc_scores[key] /= doc_length[key]
+				doc_scores[key] /= doc_length[str(key)]
 
 			results = first_k_most_relevant(doc_scores)
 			output.write(" ".join(results))
