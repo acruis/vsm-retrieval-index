@@ -43,13 +43,13 @@ def first_k_most_relevant(doc_scores):
 	for _ in range(k):
 		if not scores:
 			break
-		most_relevant_docs.append(scores.heappop())
+		most_relevant_docs.append(heapq.heappop(scores))
 	if not most_relevant_docs:
 		return most_relevant_docs
 	# deals with equal-score cases
 	kth_score, kth_docID = most_relevant_docs[-1]
 	while scores:
-		next_score, next_docID = scores.heappop()
+		next_score, next_docID = heapq.heappop(scores)
 		if next_score == kth_score:
 			most_relevant_docs.append((next_score, next_docID))
 		else:
