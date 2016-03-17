@@ -103,7 +103,7 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 			doc_scores = {}
 
 			for term in query_terms:
-				doc_scores = update_relevance(doc_scores, doc_length, dictionary, postings, query_terms, term)
+				doc_scores = update_relevance(doc_scores, dictionary, postings, query_terms, term)
 
 			for key in doc_scores:
 				doc_scores[key] /= doc_length[str(key)]
@@ -141,7 +141,7 @@ def normalize(query):
 	return query_terms
 
 
-def update_relevance(doc_scores, doc_length, dictionary, postings_file, query_terms, term):
+def update_relevance(doc_scores, dictionary, postings_file, query_terms, term):
 
 	postings = read_postings(term, dictionary, postings_file)
 
@@ -151,12 +151,11 @@ def update_relevance(doc_scores, doc_length, dictionary, postings_file, query_te
 		tf_in_query = query_terms.count(term)
 		term_idf = dictionary[term][2]
 
-		weight_of_term_in_doc = (1 + math.log10(tf_in_doc)) * term_idf
+		weight_of_term_in_doc = tf_in_doc * term_idf
 		weight_of_term_in_query = (1 + math.log10(tf_in_query)) * term_idf
 
 		if docID not in doc_scores:
 			doc_scores[docID] = 0
-			doc_length[docID] = 0
 
 		doc_scores[docID] += weight_of_term_in_doc * weight_of_term_in_query
 
