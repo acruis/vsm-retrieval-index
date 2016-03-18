@@ -8,48 +8,10 @@ import time
 import math
 from itertools import groupby, chain, islice
 
-show_time = True
+show_time = False
 
 k = 10  # number of results to return
 
-def sort_relevant_docs(most_relevant_docs):
-	"""Given a list of tuples of documents in the format of (score, docID), sort them primarily by decreasing score, and tiebreak by increasing docID,
-	and then return up to the first k elements in the list.
-
-	:param most_relevant_docs: A list of tuples of documents and their scores, where each tuple contains (score, docID). 
-	"""
-	grouped_relevant = groupby(most_relevant_docs, key=lambda score_doc_entry: score_doc_entry[0])
-	sorted_relevant = [sorted(equal_score_entries[1], key=lambda equal_score_entry: equal_score_entry[1]) for equal_score_entries in grouped_relevant]
-	flattened_relevant = chain.from_iterable(sorted_relevant)
-	trimmed_relevant = islice(flattened_relevant, k) # Takes first k elements from the iterable. If there are less than k elements, it stops when the iterable stops
-	relevant_docIDs = [str(docID) for score, docID in trimmed_relevant] # Finally, extract the docID from the tuple and convert it to a string to be written to output
-	return list(relevant_docIDs)
-
-# heapify an array, O(n) + O(k lg n)
-def first_k_most_relevant(doc_scores):
-	"""If there are more than k documents containing terms in a query, return the k documents with the highest scores, tiebroken by least docID first.
-	If there are less than k documents, return them, sorted by highest scores, and tiebroken by least docID first.
-
-	:param doc_scores: A dictionary of docID to its corresponding document's score.
-	"""
-	scores = [(-score, docID) for docID, score in doc_scores.iteritems()] # invert the scores so that heappop gives us the smallest score
-	heapq.heapify(scores)
-	most_relevant_docs = []
-	for _ in range(k):
-		if not scores:
-			break
-		most_relevant_docs.append(heapq.heappop(scores))
-	if not most_relevant_docs:
-		return most_relevant_docs
-	# deals with equal-score cases
-	kth_score, kth_docID = most_relevant_docs[-1]
-	while scores:
-		next_score, next_docID = heapq.heappop(scores)
-		if next_score == kth_score:
-			most_relevant_docs.append((next_score, next_docID))
-		else:
-			break
-	return sort_relevant_docs(most_relevant_docs)
 
 def usage():
 	"""Prints the proper format for calling this script."""
@@ -85,6 +47,7 @@ def load_args():
 
 
 def process_queries(dictionary_file, postings_file, queries_file, output_file):
+
 	# load dictionary
 	begin = time.time() * 1000.0
 	with open(dictionary_file) as dict_file:
@@ -119,23 +82,11 @@ def process_queries(dictionary_file, postings_file, queries_file, output_file):
 	if show_time: print after-begin
 
 
-"""
-Dictionary
-	- Position index
-	- Length of postings list in characters
-	- Pre-calculated idf
-
-Postings
-	- Doc ID
-	- Pre-calculated log frequency weight
-"""
-
-
 def normalize(query):
-	""" Tokenize and stem
+	""" Tokenizes and stems search query string
 
-	:param query:
-	:return:
+	:param query: Search query string in plain English
+	:return: List of query terms that have been stemmed with the Porter stemmer
 	"""
 	query_tokens = nltk.word_tokenize(query)
 	stemmer = nltk.stem.PorterStemmer()
@@ -144,7 +95,19 @@ def normalize(query):
 
 
 def update_relevance(doc_scores, dictionary, postings_file, query_terms, term, single_term_query):
+	""" Given a query token, updates the score of all documents with matching docIDs in the term's postings list
 
+	:param doc_scores: Dictionary containing current scores for all documents
+	:param dictionary: Dictionary that takes search token keys, and returns a tuple of pointer and length and idf.
+			The pointer points to the starting point of the search token's postings list in the file.
+			The length refers to the length of the search token's postings list in bytes.
+			The idf is the pre-calculated idf weight for the given term.
+	:param postings_file: File object referencing the file containing the complete set of postings lists.
+	:param query_terms: List of query terms.
+	:param term: Current query term being processed
+	:param single_term_query: Boolean value indicating if query only contains a single term
+	:return: Dictionary containing updated scores for all documents
+	"""
 	postings = read_postings(term, dictionary, postings_file)
 	
 	for docID_and_tf in postings:
@@ -159,7 +122,7 @@ def update_relevance(doc_scores, dictionary, postings_file, query_terms, term, s
 		if docID not in doc_scores:
 			doc_scores[docID] = 0
 
-		doc_scores[docID] += weight_of_term_in_doc if single_term_query else weight_of_term_in_doc * weight_of_term_in_query
+		doc_scores[docID] += weight_of_term_in_doc * weight_of_term_in_query
 
 	return doc_scores
 
@@ -167,11 +130,13 @@ def update_relevance(doc_scores, dictionary, postings_file, query_terms, term, s
 def read_postings(term, dictionary, postings_file):
 		""" Gets own postings list from file and stores it in its attribute. For search token nodes only.
 
-		:param term:
+		:param term: Current query term being processed
 		:param postings_file: File object referencing the file containing the complete set of postings lists.
-		:param dictionary: Dictionary that takes search token keys, and returns a tuple of pointer and length.
+		:param dictionary: Dictionary that takes search token keys, and returns a tuple of pointer and length and idf.
 			The pointer points to the starting point of the search token's postings list in the file.
 			The length refers to the length of the search token's postings list in bytes.
+			The idf is the pre-calculated idf weight for the given term.
+		:return Postings list of given term.
 		"""
 
 		if term in dictionary:
@@ -184,6 +149,48 @@ def read_postings(term, dictionary, postings_file):
 			return postings
 		else:
 			return []
+
+
+def first_k_most_relevant(doc_scores):
+	"""If there are more than k documents containing terms in a query, return the k documents with the highest scores, tiebroken by least docID first.
+	If there are less than k documents, return them, sorted by highest scores, and tiebroken by least docID first. O(n) + O(k lg n)
+
+	:param doc_scores: A dictionary of docID to its corresponding document's score.
+	:return: List of k docIDs of string type, which are the most relevant (i.e. have the highest scores)
+	"""
+	scores = [(-score, docID) for docID, score in doc_scores.iteritems()] # invert the scores so that heappop gives us the smallest score
+	heapq.heapify(scores)
+	most_relevant_docs = []
+	for _ in range(k):
+		if not scores:
+			break
+		most_relevant_docs.append(heapq.heappop(scores))
+	if not most_relevant_docs:
+		return most_relevant_docs
+	# deals with equal-score cases
+	kth_score, kth_docID = most_relevant_docs[-1]
+	while scores:
+		next_score, next_docID = heapq.heappop(scores)
+		if next_score == kth_score:
+			most_relevant_docs.append((next_score, next_docID))
+		else:
+			break
+	return sort_relevant_docs(most_relevant_docs)
+
+
+def sort_relevant_docs(most_relevant_docs):
+	"""Given a list of tuples of documents in the format of (score, docID), sort them primarily by decreasing score, and tiebreak by increasing docID,
+	and then return up to the first k elements in the list.
+
+	:param most_relevant_docs: A list of tuples of documents and their scores, where each tuple contains (score, docID).
+	:return: List of docIDs of string type, which have been tiebroken through sorting with their docIDs
+	"""
+	grouped_relevant = groupby(most_relevant_docs, key=lambda score_doc_entry: score_doc_entry[0])
+	sorted_relevant = [sorted(equal_score_entries[1], key=lambda equal_score_entry: equal_score_entry[1]) for equal_score_entries in grouped_relevant]
+	flattened_relevant = chain.from_iterable(sorted_relevant)
+	trimmed_relevant = islice(flattened_relevant, k) # Takes first k elements from the iterable. If there are less than k elements, it stops when the iterable stops
+	relevant_docIDs = [str(docID) for score, docID in trimmed_relevant] # Finally, extract the docID from the tuple and convert it to a string to be written to output
+	return list(relevant_docIDs)
 
 
 def main():
